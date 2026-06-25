@@ -1,4 +1,4 @@
-# telegram_bot_new.py - نسخه کامل با رفع خطای ثبت واریزی
+# telegram_bot_new.py - نسخه نهایی با تشخیص ماه مالی
 
 import telebot
 import sqlite3
@@ -10,12 +10,16 @@ from flask import Flask
 import threading
 import re
 import json
+import sys
+
+# ===== اضافه کردن مسیر پروژه برای import =====
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # ===== توکن =====
 TOKEN = "8848190789:AAETgpHaD3rx2tELf9G2IumYNljMdms28mw"
 bot = telebot.TeleBot(TOKEN)
 
-# ===== وب سرور برای Render =====
+# ===== وب سرور =====
 app = Flask(__name__)
 
 @app.route('/')
@@ -35,6 +39,54 @@ def get_db():
         return conn
     except Exception as e:
         print(f"❌ خطا: {e}")
+        return None
+
+# ===== تابع تشخیص ماه مالی =====
+def get_financial_month_from_date(date_str):
+    """تشخیص ماه مالی بر اساس تاریخ شمسی"""
+    try:
+        if not date_str:
+            return None
+        
+        date_str = str(date_str).strip()
+        date_str = re.sub(r'[^0-9/\-]', '', date_str)
+        
+        if '/' in date_str:
+            parts = date_str.split('/')
+        elif '-' in date_str:
+            parts = date_str.split('-')
+        else:
+            return None
+        
+        if len(parts) != 3:
+            return None
+        
+        month = int(parts[1])
+        day = int(parts[2])
+        
+        month_names = {
+            1: "فروردین", 2: "اردیبهشت", 3: "خرداد",
+            4: "تیر", 5: "مرداد", 6: "شهریور",
+            7: "مهر", 8: "آبان", 9: "آذر",
+            10: "دی", 11: "بهمن", 12: "اسفند"
+        }
+        
+        if day >= 25:
+            target_month = month
+        elif day <= 15:
+            if month == 1:
+                target_month = 12
+            else:
+                target_month = month - 1
+        else:
+            if month == 12:
+                target_month = 1
+            else:
+                target_month = month + 1
+        
+        return month_names.get(target_month)
+        
+    except:
         return None
 
 def format_rial(value):
@@ -371,6 +423,10 @@ def process_register_installment(message):
         
         cursor = conn.cursor()
         date = jdatetime.date.today().strftime("%Y/%m/%d")
+        
+        # ===== تشخیص ماه مالی =====
+        financial_month = get_financial_month_from_date(date)
+        
         cursor.execute("""
             INSERT INTO transactions (member_id, date, amount_total, amount_subscription, amount_installment, confirmed, source)
             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -396,6 +452,8 @@ def process_register_installment(message):
         summary = f"✅ **واریزی با موفقیت ثبت شد!**\n\n"
         summary += f"👤 عضو: {member['name'] if member else 'نامشخص'}\n"
         summary += f"📅 تاریخ: {date} ({month_name})\n"
+        if financial_month:
+            summary += f"📌 ماه مالی: **{financial_month}**\n"
         summary += f"💰 مبلغ کل: {total:,} ریال\n"
         summary += f"📊 اشتراک: {subscription:,} ریال\n"
         summary += f"💳 قسط: {installment:,} ریال\n\n"

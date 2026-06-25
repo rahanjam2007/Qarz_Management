@@ -30,7 +30,7 @@ def run_web():
     app.run(host='0.0.0.0', port=10000)
 
 # ===== دیتابیس =====
-DB_PATH = "fund.db"
+DB_PATH = "fund_new.db"
 
 def get_db():
     try:

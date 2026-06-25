@@ -5,6 +5,7 @@ import re
 import jdatetime
 from flask import Flask
 from datetime import datetime
+import threading
 
 TOKEN = "8848190789:AAETgPhA03rX2tELF9G2IumYN1jMds28mw"
 bot = telebot.TeleBot(TOKEN)
@@ -21,7 +22,6 @@ def run_web():
     app.run(host='0.0.0.0', port=10000)
 
 # ===== دیتابیس =====
-# استفاده از مسیر مطلق برای اطمینان از اتصال به فایل صحیح
 DB_PATH = os.path.join(os.path.dirname(__file__), "fund_new.db")
 
 print(f"✅ ربات به دیتابیس متصل شد: {DB_PATH}")
@@ -165,8 +165,7 @@ def handle_message(message):
         response += f"💰 مبلغ کل: {format_rial(total)} ریال\n"
         response += f"📊 اشتراک: {format_rial(subscription)} ریال\n"
         response += f"💳 قسط: {format_rial(installment)} ریال\n\n"
-        response += f"⏳ **وضعیت:** در انتظار تأیید مدیر\n\n"
-        response += f"🔙 برای بازگشت به منوی اصلی، دکمه زیر را بزنید."
+        response += f"⏳ **وضعیت:** در انتظار تأیید مدیر"
 
         bot.reply_to(message, response, parse_mode='Markdown')
 
@@ -177,7 +176,6 @@ def handle_message(message):
 
 # ===== اجرا =====
 if __name__ == "__main__":
-    import threading
     print("=" * 60)
     print("🤖 ربات کامل صندوق قرض‌الحسنه ۱۴ معصوم")
     print(f"📱 شناسه: @masum_sandogh14_bot")

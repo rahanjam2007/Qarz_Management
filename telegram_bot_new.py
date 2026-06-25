@@ -1,4 +1,4 @@
-# telegram_bot_new.py - نسخه کامل با همه قابلیت‌ها
+# telegram_bot_new.py - نسخه کامل با رفع خطای ثبت واریزی
 
 import telebot
 import sqlite3
@@ -9,6 +9,7 @@ from datetime import datetime
 from flask import Flask
 import threading
 import re
+import json
 
 # ===== توکن =====
 TOKEN = "8848190789:AAETgpHaD3rx2tELf9G2IumYNljMdms28mw"
@@ -40,10 +41,8 @@ def format_rial(value):
     return f"{value:,}"
 
 def save_chat_id(phone, chat_id):
-    """ذخیره chat_id کاربر"""
     if not phone:
         return
-    import json
     data = {}
     if os.path.exists("user_chat_ids.json"):
         try:
@@ -56,10 +55,8 @@ def save_chat_id(phone, chat_id):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def get_chat_id(phone):
-    """دریافت chat_id کاربر"""
     if not phone:
         return None
-    import json
     if os.path.exists("user_chat_ids.json"):
         try:
             with open("user_chat_ids.json", 'r', encoding='utf-8') as f:
@@ -161,9 +158,6 @@ def start(message):
         print(f"❌ خطا: {e}")
         bot.reply_to(message, f"❌ خطا: {str(e)}")
 
-# ============================================================
-# ===== کد عضویت =====
-# ============================================================
 def process_code(message):
     user_id = message.from_user.id
     chat_id = user_id
@@ -310,8 +304,15 @@ def process_register_subscription(message):
         subscription = int(message.text.replace(',', '').strip())
         total = user_temp_data[user_id]['total']
         
-        if subscription < 0 or subscription > total:
-            bot.reply_to(message, f"❌ مبلغ اشتراک باید بین 0 تا {total:,} باشد!", reply_markup=get_cancel_keyboard())
+        if subscription < 0:
+            bot.reply_to(message, "❌ مبلغ اشتراک نمی‌تواند منفی باشد!", reply_markup=get_cancel_keyboard())
+            return
+        if subscription > total:
+            bot.reply_to(
+                message,
+                f"❌ مبلغ اشتراک ({subscription:,} ریال) از مبلغ کل ({total:,} ریال) بیشتر است!",
+                reply_markup=get_cancel_keyboard()
+            )
             return
         
         user_temp_data[user_id]['subscription'] = subscription
@@ -348,8 +349,17 @@ def process_register_installment(message):
         total = user_temp_data[user_id]['total']
         subscription = user_temp_data[user_id]['subscription']
         
-        if installment < 0 or installment > (total - subscription):
-            bot.reply_to(message, f"❌ مبلغ قسط باید بین 0 تا {total - subscription:,} باشد!", reply_markup=get_cancel_keyboard())
+        if installment < 0:
+            bot.reply_to(message, "❌ مبلغ قسط نمی‌تواند منفی باشد!", reply_markup=get_cancel_keyboard())
+            return
+        
+        if installment > (total - subscription):
+            bot.reply_to(
+                message, 
+                f"❌ مبلغ قسط ({installment:,} ریال) از باقیمانده ({total - subscription:,} ریال) بیشتر است!\n\n"
+                f"📌 لطفاً مبلغ کمتری وارد کنید.",
+                reply_markup=get_cancel_keyboard()
+            )
             return
         
         # ===== ثبت در دیتابیس =====
@@ -389,11 +399,22 @@ def process_register_installment(message):
         summary += f"💰 مبلغ کل: {total:,} ریال\n"
         summary += f"📊 اشتراک: {subscription:,} ریال\n"
         summary += f"💳 قسط: {installment:,} ریال\n\n"
-        summary += f"⏳ **وضعیت:** در انتظار تأیید مدیر"
+        summary += f"⏳ **وضعیت:** در انتظار تأیید مدیر\n\n"
+        summary += f"🔙 برای بازگشت به منوی اصلی، دکمه زیر را بزنید."
         
         bot.reply_to(message, summary, reply_markup=get_back_keyboard())
-    except:
-        bot.reply_to(message, "❌ لطفاً عدد وارد کنید!", reply_markup=get_cancel_keyboard())
+        
+    except ValueError:
+        bot.reply_to(
+            message, 
+            "❌ لطفاً عدد وارد کنید!\n\n"
+            "📌 مثال: 2000000\n"
+            "📌 اگر قسطی پرداخت نمی‌کنید، عدد 0 را وارد کنید.",
+            reply_markup=get_cancel_keyboard()
+        )
+    except Exception as e:
+        print(f"❌ خطا: {e}")
+        bot.reply_to(message, f"❌ خطا: {str(e)}", reply_markup=get_back_keyboard())
 
 # ============================================================
 # ===== مانده حساب =====
@@ -712,7 +733,6 @@ if __name__ == "__main__":
     except:
         pass
     
-    # اجرای وب سرور
     print("🚀 وب سرور روی پورت 10000...")
     threading.Thread(target=run_web, daemon=True).start()
     

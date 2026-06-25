@@ -1,5 +1,4 @@
-# telegram_bot_final.py - نسخه نهایی و تضمینی
-# این فایل رو به عنوان telegram_bot_new.py ذخیره کن و توی Render آپلود کن
+# telegram_bot_new.py - نسخه نهایی با Flask
 
 import telebot
 import sqlite3
@@ -13,7 +12,7 @@ import threading
 TOKEN = "8848190789:AAETgpHaD3rx2tELf9G2IumYNljMdms28mw"
 bot = telebot.TeleBot(TOKEN)
 
-# ===== ساخت وب سرور برای Render (جلوی خطای No open ports رو میگیره) =====
+# ===== وب سرور برای Render =====
 app = Flask(__name__)
 
 @app.route('/')
@@ -23,7 +22,7 @@ def home():
 def run_web():
     app.run(host='0.0.0.0', port=10000)
 
-# ===== اتصال به دیتابیس =====
+# ===== دیتابیس =====
 DB_PATH = "fund.db"
 
 def get_db():
@@ -32,7 +31,7 @@ def get_db():
         conn.row_factory = sqlite3.Row
         return conn
     except Exception as e:
-        print(f"❌ دیتابیس خطا: {e}")
+        print(f"❌ خطا: {e}")
         return None
 
 # ===== کیبورد =====
@@ -60,7 +59,7 @@ user_member_ids = {}
 def start(message):
     user_id = message.from_user.id
     if user_id in user_member_ids:
-        bot.reply_to(message, f"خوش برگشتی!", reply_markup=get_main_keyboard())
+        bot.reply_to(message, "خوش برگشتی!", reply_markup=get_main_keyboard())
         return
     msg = bot.reply_to(message, "کد عضويت خود را وارد کنيد:")
     bot.register_next_step_handler(msg, process_code)
@@ -154,24 +153,25 @@ def unknown_handler(message):
 # ===== اجرا =====
 # ============================================================
 if __name__ == "__main__":
-    print("🤖 ربات در حال اجراست...")
+    print("=" * 60)
+    print("🤖 ربات جدید صندوق قرض‌الحسنه ۱۴ معصوم")
+    print("✅ در حال اجرا...")
+    print("=" * 60)
     
-    # اطمینان از وجود دیتابیس
     if os.path.exists(DB_PATH):
-        print("✅ دیتابیس پیدا شد")
+        print(f"✅ دیتابیس پیدا شد")
     else:
-        print("❌ دیتابیس پیدا نشد! لطفاً فایل fund.db را آپلود کنید.")
+        print(f"⚠️ دیتابیس پیدا نشد!")
     
-    # پاک کردن webhook
     try:
         bot.remove_webhook()
         print("✅ Webhook پاک شد")
     except:
         pass
     
-    # اجرای وب سرور در یک نخ جداگانه
+    # اجرای وب سرور
+    print("🚀 وب سرور روی پورت 10000...")
     threading.Thread(target=run_web, daemon=True).start()
-    print("🚀 وب سرور روی پورت 10000 اجرا شد")
     
-    # اجرای ربات
+    print("🚀 ربات در حال اجرا...")
     bot.polling(none_stop=True, interval=3)

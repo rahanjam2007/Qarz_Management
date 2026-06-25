@@ -7,7 +7,7 @@ from flask import Flask
 from datetime import datetime
 import threading
 
-TOKEN = "8848190789:AAETgPhA03rX2tELF9G2IumYN1jMds28mw"
+TOKEN = "8848190789:AAEv3VgFIPQWW2IkhriI5UKqPPWVaoH0QU4"
 bot = telebot.TeleBot(TOKEN)
 
 # ---
